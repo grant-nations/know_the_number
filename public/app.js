@@ -5,12 +5,29 @@ const result = document.querySelector('#result');
 const form = document.querySelector('#answer-form');
 const answer = document.querySelector('#answer');
 const submitButton = document.querySelector('#submit-button');
+const replayButton = document.querySelector('#replay-button');
 const startButton = document.querySelector('#start-button');
 
 let correctNumber;
 let timeLimit = 10;
 let timerId;
 let roundInProgress = false;
+let roundAudio;
+let roundAudioUrl;
+
+function clearRoundAudio() {
+  if (roundAudio) roundAudio.pause();
+  if (roundAudioUrl) URL.revokeObjectURL(roundAudioUrl);
+  roundAudio = undefined;
+  roundAudioUrl = undefined;
+  replayButton.disabled = true;
+}
+
+function replayAudio() {
+  if (!roundAudio) return;
+  roundAudio.currentTime = 0;
+  roundAudio.play();
+}
 
 function setResult(message, success = false) {
   result.hidden = false;
@@ -43,6 +60,8 @@ function startTimer() {
 
 async function startRound() {
   clearInterval(timerId);
+  clearRoundAudio();
+  answer.value = '';
   startButton.disabled = true;
   answer.disabled = true;
   submitButton.disabled = true;
@@ -60,9 +79,12 @@ async function startRound() {
 
     correctNumber = Number(response.headers.get('X-Correct-Number'));
     timeLimit = Number(response.headers.get('X-Time-Limit-Seconds')) || 10;
-    const audio = new Audio(URL.createObjectURL(await response.blob()));
+    roundAudioUrl = URL.createObjectURL(await response.blob());
+    const audio = new Audio(roundAudioUrl);
+    roundAudio = audio;
     audio.addEventListener('ended', () => answer.focus(), { once: true });
     await audio.play();
+    replayButton.disabled = false;
     roundInProgress = true;
     roundLabel.textContent = 'Manche en cours';
     status.textContent = 'Quel nombre as-tu entendu ?';
@@ -90,8 +112,14 @@ form.addEventListener('submit', (event) => {
 });
 
 startButton.addEventListener('click', startRound);
+replayButton.addEventListener('click', replayAudio);
 
 document.addEventListener('keydown', (event) => {
+  if (event.key.toLowerCase() === 'r' && roundAudio) {
+    event.preventDefault();
+    replayAudio();
+    return;
+  }
   if (event.key === 'Enter' && !roundInProgress && !startButton.disabled) {
     event.preventDefault();
     startRound();

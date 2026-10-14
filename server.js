@@ -8,7 +8,7 @@ loadEnvFile();
 const PORT = Number(process.env.PORT || 3000);
 const MIN_NUMBER = -10000;
 const MAX_NUMBER = 10000;
-const TIME_LIMIT_SECONDS = 10;
+const TIME_LIMIT_SECONDS = 20;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 const PUBLIC_DIR = path.join(__dirname, 'public');
