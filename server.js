@@ -9,6 +9,8 @@ const PORT = Number(process.env.PORT || 3000);
 const MIN_NUMBER = -10000;
 const MAX_NUMBER = 10000;
 const TIME_LIMIT_SECONDS = 20;
+const MIN_ALLOWED_NUMBER = -1000000;
+const MAX_ALLOWED_NUMBER = 1000000;
 const VOICE_ID = process.env.ELEVENLABS_VOICE_ID || 'EXAVITQu4vr4xnSDxMaL';
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -23,8 +25,8 @@ function loadEnvFile() {
   }
 }
 
-function randomNumber() {
-  return Math.floor(Math.random() * (MAX_NUMBER - MIN_NUMBER + 1)) + MIN_NUMBER;
+function randomNumber(minimum, maximum) {
+  return Math.floor(Math.random() * (maximum - minimum + 1)) + minimum;
 }
 
 async function synthesize(text) {
@@ -59,8 +61,17 @@ function sendJson(response, statusCode, body) {
   response.end(payload);
 }
 
-async function handleRound(response) {
-  const number = randomNumber();
+async function handleRound(request, response) {
+  const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  const minimum = Number(requestUrl.searchParams.get('min') ?? MIN_NUMBER);
+  const maximum = Number(requestUrl.searchParams.get('max') ?? MAX_NUMBER);
+
+  if (!Number.isSafeInteger(minimum) || !Number.isSafeInteger(maximum)
+    || minimum < MIN_ALLOWED_NUMBER || maximum > MAX_ALLOWED_NUMBER || minimum >= maximum) {
+    return sendJson(response, 400, { error: 'La plage de nombres est invalide.' });
+  }
+
+  const number = randomNumber(minimum, maximum);
   try {
     const audio = await synthesize(numberToFrench(number));
     response.writeHead(200, {
@@ -90,10 +101,15 @@ function serveStatic(request, response) {
 }
 
 const server = http.createServer((request, response) => {
-  if (request.method === 'GET' && request.url === '/api/config') {
-    return sendJson(response, 200, { timeLimitSeconds: TIME_LIMIT_SECONDS });
+  const requestUrl = new URL(request.url, `http://${request.headers.host || 'localhost'}`);
+  if (request.method === 'GET' && requestUrl.pathname === '/api/config') {
+    return sendJson(response, 200, {
+      timeLimitSeconds: TIME_LIMIT_SECONDS,
+      minNumber: MIN_NUMBER,
+      maxNumber: MAX_NUMBER,
+    });
   }
-  if (request.method === 'GET' && request.url === '/api/round') return handleRound(response);
+  if (request.method === 'GET' && requestUrl.pathname === '/api/round') return handleRound(request, response);
   if (request.method === 'GET') return serveStatic(request, response);
   return sendJson(response, 405, { error: 'Méthode non autorisée.' });
 });

@@ -7,8 +7,13 @@ const answer = document.querySelector('#answer');
 const submitButton = document.querySelector('#submit-button');
 const replayButton = document.querySelector('#replay-button');
 const startButton = document.querySelector('#start-button');
+const minimumInput = document.querySelector('#minimum');
+const maximumInput = document.querySelector('#maximum');
+const durationInput = document.querySelector('#duration');
 
 let correctNumber;
+let minimumNumber;
+let maximumNumber;
 let timeLimit;
 let timerId;
 let roundInProgress = false;
@@ -20,11 +25,30 @@ async function loadConfig() {
   if (!response.ok) throw new Error('Impossible de charger la configuration.');
 
   const config = await response.json();
+  minimumNumber = Number(config.minNumber);
+  maximumNumber = Number(config.maxNumber);
   timeLimit = Number(config.timeLimitSeconds);
-  if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
-    throw new Error('La durée de la manche est invalide.');
+  minimumInput.value = minimumNumber;
+  maximumInput.value = maximumNumber;
+  durationInput.value = timeLimit;
+  if (!Number.isSafeInteger(minimumNumber) || !Number.isSafeInteger(maximumNumber)
+    || minimumNumber >= maximumNumber || !Number.isFinite(timeLimit) || timeLimit <= 0) {
+    throw new Error('La configuration reçue est invalide.');
   }
   timer.textContent = timeLimit.toFixed(1);
+}
+
+function readSettings() {
+  const minimum = Number(minimumInput.value);
+  const maximum = Number(maximumInput.value);
+  const duration = Number(durationInput.value);
+  if (!Number.isSafeInteger(minimum) || !Number.isSafeInteger(maximum)
+    || minimum >= maximum || !Number.isFinite(duration) || duration <= 0) {
+    throw new Error('Vérifie les paramètres de la manche.');
+  }
+  minimumNumber = minimum;
+  maximumNumber = maximum;
+  timeLimit = duration;
 }
 
 function clearRoundAudio() {
@@ -84,6 +108,7 @@ function checkAnswer(timedOut = false) {
 async function startRound() {
   try {
     await configPromise;
+    readSettings();
     clearInterval(timerId);
     clearRoundAudio();
     answer.value = '';
@@ -95,14 +120,13 @@ async function startRound() {
     status.textContent = 'Écoute attentivement...';
     timer.textContent = timeLimit.toFixed(1);
 
-    const response = await fetch('/api/round');
+    const response = await fetch(`/api/round?min=${minimumNumber}&max=${maximumNumber}`);
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Impossible de charger la manche.');
     }
 
     correctNumber = Number(response.headers.get('X-Correct-Number'));
-    timeLimit = Number(response.headers.get('X-Time-Limit-Seconds')) || timeLimit;
     roundAudioUrl = URL.createObjectURL(await response.blob());
     const audio = new Audio(roundAudioUrl);
     roundAudio = audio;

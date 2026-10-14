@@ -16,6 +16,19 @@
         <div id="status" class="status">Appuie sur Démarrer quand tu es prêt.</div>
         <div id="result" class="result" hidden></div>
 
+        <details class="settings">
+          <summary>Paramètres</summary>
+          <div class="settings-grid">
+            <label for="minimum">Minimum</label>
+            <input id="minimum" name="minimum" type="number" step="1">
+            <label for="maximum">Maximum</label>
+            <input id="maximum" name="maximum" type="number" step="1">
+            <label for="duration">Durée (secondes)</label>
+            <input id="duration" name="duration" type="number" min="1" step="1">
+          </div>
+          <p class="settings-hint">Les réglages s'appliquent à la prochaine manche.</p>
+        </details>
+
         <form id="answer-form" autocomplete="off">
           <label for="answer">Ta réponse</label>
           <div class="answer-row">
