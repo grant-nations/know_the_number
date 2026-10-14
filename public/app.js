@@ -9,11 +9,23 @@ const replayButton = document.querySelector('#replay-button');
 const startButton = document.querySelector('#start-button');
 
 let correctNumber;
-let timeLimit = 10;
+let timeLimit;
 let timerId;
 let roundInProgress = false;
 let roundAudio;
 let roundAudioUrl;
+
+async function loadConfig() {
+  const response = await fetch('/api/config');
+  if (!response.ok) throw new Error('Impossible de charger la configuration.');
+
+  const config = await response.json();
+  timeLimit = Number(config.timeLimitSeconds);
+  if (!Number.isFinite(timeLimit) || timeLimit <= 0) {
+    throw new Error('La durée de la manche est invalide.');
+  }
+  timer.textContent = timeLimit.toFixed(1);
+}
 
 function clearRoundAudio() {
   if (roundAudio) roundAudio.pause();
@@ -54,23 +66,35 @@ function startTimer() {
   timerId = setInterval(() => {
     const remaining = Math.max(0, (deadline - performance.now()) / 1000);
     timer.textContent = remaining.toFixed(1);
-    if (remaining <= 0) finishRound(`Le temps est écoulé. La réponse était ${correctNumber}.`, false);
+    if (remaining <= 0) checkAnswer(true);
   }, 50);
 }
 
-async function startRound() {
-  clearInterval(timerId);
-  clearRoundAudio();
-  answer.value = '';
-  startButton.disabled = true;
-  answer.disabled = true;
-  submitButton.disabled = true;
-  result.hidden = true;
-  roundLabel.textContent = "Chargement de l'audio";
-  status.textContent = 'Écoute attentivement...';
-  timer.textContent = timeLimit.toFixed(1);
+function checkAnswer(timedOut = false) {
+  const guess = Number(answer.value.trim());
+  if (Number.isInteger(guess) && guess === correctNumber) {
+    finishRound(`Correct : ${correctNumber}.`, true);
+  } else if (timedOut) {
+    finishRound(`Le temps est écoulé. La réponse était ${correctNumber}.`, false);
+  } else {
+    finishRound(`Pas tout à fait. La réponse était ${correctNumber}.`, false);
+  }
+}
 
+async function startRound() {
   try {
+    await configPromise;
+    clearInterval(timerId);
+    clearRoundAudio();
+    answer.value = '';
+    startButton.disabled = true;
+    answer.disabled = true;
+    submitButton.disabled = true;
+    result.hidden = true;
+    roundLabel.textContent = "Chargement de l'audio";
+    status.textContent = 'Écoute attentivement...';
+    timer.textContent = timeLimit.toFixed(1);
+
     const response = await fetch('/api/round');
     if (!response.ok) {
       const error = await response.json();
@@ -78,7 +102,7 @@ async function startRound() {
     }
 
     correctNumber = Number(response.headers.get('X-Correct-Number'));
-    timeLimit = Number(response.headers.get('X-Time-Limit-Seconds')) || 10;
+    timeLimit = Number(response.headers.get('X-Time-Limit-Seconds')) || timeLimit;
     roundAudioUrl = URL.createObjectURL(await response.blob());
     const audio = new Audio(roundAudioUrl);
     roundAudio = audio;
@@ -103,12 +127,7 @@ async function startRound() {
 form.addEventListener('submit', (event) => {
   event.preventDefault();
   if (!roundInProgress) return;
-  const guess = Number(answer.value.trim());
-  if (Number.isInteger(guess) && guess === correctNumber) {
-    finishRound(`Correct : ${correctNumber}.`, true);
-  } else {
-    finishRound(`Pas tout à fait. La réponse était ${correctNumber}.`, false);
-  }
+  checkAnswer();
 });
 
 startButton.addEventListener('click', startRound);
@@ -124,4 +143,9 @@ document.addEventListener('keydown', (event) => {
     event.preventDefault();
     startRound();
   }
+});
+
+const configPromise = loadConfig().catch((error) => {
+  roundLabel.textContent = 'Configuration nécessaire';
+  status.textContent = error.message;
 });

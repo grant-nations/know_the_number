@@ -90,6 +90,9 @@ function serveStatic(request, response) {
 }
 
 const server = http.createServer((request, response) => {
+  if (request.method === 'GET' && request.url === '/api/config') {
+    return sendJson(response, 200, { timeLimitSeconds: TIME_LIMIT_SECONDS });
+  }
   if (request.method === 'GET' && request.url === '/api/round') return handleRound(response);
   if (request.method === 'GET') return serveStatic(request, response);
   return sendJson(response, 405, { error: 'Méthode non autorisée.' });
