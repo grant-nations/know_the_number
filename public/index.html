@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connaître le nombre</title>
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="practice-panel" aria-live="polite">
+        <div class="round-meta">
+          <span id="round-label">Prêt</span>
+          <span id="timer" class="timer">10.0</span>
+        </div>
+        <div id="status" class="status">Appuie sur Démarrer quand tu es prêt.</div>
+        <div id="result" class="result" hidden></div>
+
+        <form id="answer-form" autocomplete="off">
+          <label for="answer">Ta réponse</label>
+          <div class="answer-row">
+            <input id="answer" name="answer" inputmode="numeric" placeholder="ex. 305" disabled>
+            <button id="submit-button" type="submit" disabled>Vérifier</button>
+          </div>
+        </form>
+
+        <button id="start-button" class="start-button" type="button">Lancer la manche</button>
+        <p class="hint">Appuie sur Entrée après chaque résultat pour continuer.</p>
+      </section>
+    </main>
+    <script src="/app.js"></script>
+  </body>
+</html>

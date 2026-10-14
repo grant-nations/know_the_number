@@ -1,0 +1,10 @@
+{
+  "name": "know-the-number",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A lightweight French number listening practice app using ElevenLabs TTS.",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  }
+}
